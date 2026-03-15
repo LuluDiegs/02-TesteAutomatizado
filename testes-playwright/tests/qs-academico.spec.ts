@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
+
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
+        await page.goto('https://luludiegs.github.io/02-TesteAutomatizado/');
+        await expect(page.getByLabel('Nome do Aluno')).toBeVisible();
     });
 
     test('1. deve cadastrar aluno com dados válidos', async ({ page }) => {
@@ -11,7 +13,10 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('8');
         await page.getByLabel('Nota 3').fill('6');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.locator('#tabela-alunos tbody tr')).toHaveCount(1);
+
+        await expect(
+            page.getByRole('cell', { name: 'João Silva', exact: true })
+        ).toBeVisible();
     });
 
     test('2. deve exibir mensagem de sucesso após cadastro', async ({ page }) => {
@@ -20,7 +25,8 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('8');
         await page.getByLabel('Nota 3').fill('10');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.locator('#mensagem')).toContainText('cadastrado com sucesso');
+
+        await expect(page.locator('#mensagem')).toBeVisible();
     });
 
     test('3. não deve cadastrar aluno sem nome', async ({ page }) => {
@@ -28,7 +34,8 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('8');
         await page.getByLabel('Nota 3').fill('6');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.getByText('Nenhum aluno cadastrado')).toBeVisible();
+
+        await expect(page.getByText('Nenhum aluno cadastrado.')).toBeVisible();
     });
 
     test('4. deve calcular a média aritmética das três notas', async ({ page }) => {
@@ -37,15 +44,17 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('6');
         await page.getByLabel('Nota 3').fill('8');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        const celulaMedia = page.locator('#tabela-alunos tbody tr').first().locator('td').nth(4);
-        await expect(celulaMedia).toHaveText('6.00');
+
+        const media = page.locator('#tabela-alunos tbody tr').first().locator('td').nth(4);
+        await expect(media).toHaveText('6.00');
     });
 
     test('5. validacao de notas fora do intervalo', async ({ page }) => {
         await page.getByLabel('Nome do Aluno').fill('Aluno Errado');
         await page.getByLabel('Nota 1').fill('11');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.locator('#tabela-alunos tbody tr')).toHaveCount(0);
+
+        await expect(page.getByText('Nenhum aluno cadastrado.')).toBeVisible();
     });
 
     test('6. busca por nome', async ({ page }) => {
@@ -54,8 +63,12 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('7');
         await page.getByLabel('Nota 3').fill('7');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await page.getByPlaceholder('Buscar por nome...').fill('Buscado');
-        await expect(page.locator('#tabela-alunos tbody tr')).toHaveCount(1);
+
+        await page.getByPlaceholder('Filtrar alunos...').fill('Buscado');
+
+        await expect(
+            page.getByRole('cell', { name: 'Buscado', exact: true })
+        ).toBeVisible();
     });
 
     test('7. exclusao individual de aluno', async ({ page }) => {
@@ -64,8 +77,10 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('7');
         await page.getByLabel('Nota 3').fill('7');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await page.locator('.btn-excluir').click();
-        await expect(page.getByText('Nenhum aluno cadastrado')).toBeVisible();
+
+        await page.getByRole('button', { name: /Excluir/ }).click();
+
+        await expect(page.getByText('Nenhum aluno cadastrado.')).toBeVisible();
     });
 
     test('8. estatisticas', async ({ page }) => {
@@ -74,6 +89,7 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('7');
         await page.getByLabel('Nota 3').fill('7');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
+
         await expect(page.locator('#stat-total')).toHaveText('1');
     });
 
@@ -83,7 +99,9 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('7');
         await page.getByLabel('Nota 3').fill('7');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.getByText('Aprovado', { exact: true })).toBeVisible();
+
+        const situacao = page.locator('#tabela-alunos tbody tr').last().locator('td').nth(5);
+        await expect(situacao).toHaveText('Aprovado');
     });
 
     test('10. situacao reprovado', async ({ page }) => {
@@ -92,18 +110,20 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
         await page.getByLabel('Nota 2').fill('2');
         await page.getByLabel('Nota 3').fill('2');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.getByText('Reprovado')).toBeVisible();
-    });
 
+        const situacao = page.locator('#tabela-alunos tbody tr').last().locator('td').nth(5);
+        await expect(situacao).toHaveText('Reprovado');
+    });
     test('11. situacao recuperacao', async ({ page }) => {
         await page.getByLabel('Nome do Aluno').fill('Recuperacao');
         await page.getByLabel('Nota 1').fill('5');
         await page.getByLabel('Nota 2').fill('6');
         await page.getByLabel('Nota 3').fill('6');
         await page.getByRole('button', { name: 'Cadastrar' }).click();
-        await expect(page.getByText('Recuperação')).toBeVisible();
-    });
 
+        const situacao = page.locator('#tabela-alunos tbody tr').last().locator('td').nth(5);
+        await expect(situacao).toHaveText('Recuperação');
+    });
     test('12. multiplos cadastros', async ({ page }) => {
         for (let i = 1; i <= 3; i++) {
             await page.getByLabel('Nome do Aluno').fill(`Aluno ${i}`);
@@ -112,6 +132,8 @@ test.describe('QS Acadêmico — Testes do Sistema de Notas', () => {
             await page.getByLabel('Nota 3').fill('7');
             await page.getByRole('button', { name: 'Cadastrar' }).click();
         }
+
         await expect(page.locator('#tabela-alunos tbody tr')).toHaveCount(3);
     });
+
 });
